@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0E3B2C">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Résidence Hotel Amani</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--g:#0E3B2C;--g2:#1B5A44;--gold:#B58A3C;--gold2:#D9B96A;--bg:#FAF8F3;--ink:#18231E;--mut:#66726C;--line:#E4DFD2;--red:#B3382C;--ok:#2E7D52;--card:#fff;--sh:0 1px 0 var(--line)}
+@media(prefers-color-scheme:dark){:root{--bg:#0B1612;--ink:#EDEBE3;--mut:#9AA7A0;--line:#25362E;--card:#122019;--g:#0E3B2C}}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Manrope,system-ui,sans-serif;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+h1,h2,h3{font-family:"Cormorant Garamond",Georgia,serif;margin:0;line-height:1.1}
+header{background:var(--g);color:#fff;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+.bar{display:flex;align-items:center;gap:12px;padding:10px 16px;max-width:1100px;margin:0 auto;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-family:"Cormorant Garamond",serif;font-weight:700;font-size:20px;letter-spacing:.04em}
+.brand img{width:34px;height:34px;border-radius:8px}.brand small{display:block;font:600 10px Manrope;letter-spacing:.2em;color:var(--gold2)}
+nav{display:flex;gap:2px;margin-left:auto;overflow-x:auto}
+nav button{background:none;border:0;color:#cfe0d7;padding:8px 12px;font:600 14px Manrope;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+nav button.on{color:#fff;border-color:var(--gold2)}
+main{max-width:1100px;margin:0 auto;padding:18px 16px 90px}
+.hero{background:linear-gradient(135deg,var(--g),var(--g2));color:#fff;border-radius:14px;padding:34px 24px;margin-bottom:22px;border-bottom:4px solid var(--gold)}
+.hero h1{font-size:clamp(32px,6vw,52px);max-width:14ch}.hero p{color:#cfe0d7;max-width:46ch;margin:10px 0 18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+.card h3{font-size:24px}.price{font:700 20px "Cormorant Garamond";color:var(--gold)}
+.mut{color:var(--mut);font-size:13px}
+button.p,button.s,a.p{display:inline-block;border:0;border-radius:8px;padding:10px 16px;font:700 14px Manrope;cursor:pointer;text-decoration:none}
+.p{background:var(--g);color:#fff}.s{background:none;border:1px solid var(--line)!important;color:var(--ink)}.w{background:#1FA855;color:#fff}.d{background:var(--red);color:#fff}
+button.sm{padding:6px 10px;font-size:12px;margin:2px}
+label{display:block;font-weight:600;font-size:13px;margin-top:12px}
+input,select,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--card);color:var(--ink);margin-top:4px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.kpi b{display:block;font:700 30px "Cormorant Garamond"}
+.tag{display:inline-block;padding:2px 8px;border-radius:20px;font-size:12px;font-weight:700;background:var(--line)}
+.en_attente{background:#F6E7BE;color:#6b4e00}.confirmee,.libre{background:#CFE8D8;color:#14532d}.arrivee,.occupee{background:#CDDCF2;color:#1d3f7a}.terminee{background:var(--line)}.annulee,.maintenance{background:#F3CFCB;color:#7a1d14}.nettoyage{background:#E6D8F3;color:#4b2a7a}
+table{width:100%;border-collapse:collapse}td,th{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.scroll{overflow-x:auto}
+dialog{border:0;border-radius:12px;max-width:460px;width:calc(100% - 24px);background:var(--card);color:var(--ink)}dialog::backdrop{background:#0008}
+.auth{max-width:400px;margin:30px auto}.err{color:var(--red);font-weight:600;min-height:20px}
+.fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:6;border-radius:50px;padding:14px 18px;box-shadow:0 4px 14px #0004}
+#toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:var(--g);color:#fff;padding:10px 16px;border-radius:8px;z-index:20}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+@media(prefers-reduced-motion:no-preference){.hero{animation:in .6s ease-out}@keyframes in{from{opacity:0;transform:translateY(8px)}}}
+</style>
+</head>
+<body>
+<header><div class="bar"><div class="brand"><img src="icon.svg" alt=""><div>RÉSIDENCE HOTEL<small>AMANI</small></div></div><nav id="nav"></nav><button id="inst" class="s sm" hidden style="color:#fff">Installer</button></div></header>
+<main id="app"></main>
+<dialog id="dlg"></dialog><div id="toast" hidden role="status"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+/* ====== CONFIGURATION : à remplir (Supabase > Project Settings > API) ====== */
+const CFG={url:'https://etecqfziuvkesyqluoao.supabase.co',key:'sb_publishable_ealfXpF2YqDhNJpHwAoe4A_k8OIrsxa',wa:'2250747438115',tel:'+22527244651 59'.replace(' ',''),email:'residencehotelamani@gmail.com'};
+/* ========================================================================== */
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const R={client:'Client',receptionniste:'Réceptionniste',gerant:'Gérant',proprietaire:'Propriétaire',admin:'Administrateur'};
+const S={en_attente:'En attente',confirmee:'Confirmée',arrivee:'En séjour',terminee:'Terminée',annulee:'Annulée',libre:'Libre',occupee:'Occupée',nettoyage:'À nettoyer',maintenance:'Maintenance'};
+const tag=s=>`<span class="tag ${s}">${S[s]}</span>`;
+const fmt=n=>(n||0).toLocaleString('fr-FR')+' F',dt=d=>new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
+const nights=b=>Math.max(1,Math.round((new Date(b.check_out)-new Date(b.check_in))/864e5));
+const wa=(p,t)=>`https://wa.me/${p}?text=${encodeURIComponent(t)}`,cw=p=>'225'+String(p||'').replace(/\D/g,'').slice(-10);
+const mail=p=>String(p).replace(/\D/g,'').slice(-10)+'@amani.app';
+let db,me=null,tab='home',types=[],rooms=[],data=[],users=[],mode='in';
+const staff=()=me&&me.role!=='client',manage=()=>['receptionniste','gerant','admin'].includes(me?.role),conf=()=>['gerant','admin'].includes(me?.role);
+const toast=m=>{const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2500)};
+const dlg=h=>{$('#dlg').innerHTML=h;$('#dlg').showModal()},closeD=()=>$('#dlg').close();
+
+async function boot(){
+ if(CFG.url.startsWith('COLLER')){$('#app').innerHTML='<div class="card"><h2>Configuration requise</h2><p>Ouvrez <b>index.html</b>, remplacez COLLER_URL_SUPABASE et COLLER_CLE_ANON par les valeurs de votre projet Supabase.</p></div>';return}
+ db=supabase.createClient(CFG.url,CFG.key);
+ const{data:{session}}=await db.auth.getSession();me=null;
+ if(session)me=(await db.from('profiles').select('*').eq('id',session.user.id).single()).data;
+ await load();if(me&&tab==='home'&&staff())tab='dash';render();
+}
+async function load(){
+ types=(await db.from('room_types').select('*').order('price')).data||[];
+ if(!me)return;
+ let q=db.from('bookings').select('*,profiles(full_name,phone),room_types(name,price),rooms(number)').order('created_at',{ascending:false});
+ if(!staff())q=q.eq('client_id',me.id);data=(await q).data||[];
+ if(staff())rooms=(await db.from('rooms').select('*,room_types(name)').order('number')).data||[];
+ if(me.role==='admin')users=(await db.from('profiles').select('*').order('created_at')).data||[];
+}
+const go=async t=>{tab=t;await load();render()};
+function render(){
+ const T=!me?{home:'Chambres',auth:'Connexion'}:staff()?{dash:'Tableau de bord',res:'Réservations',rooms:'Chambres',...(me.role==='admin'?{users:'Utilisateurs'}:{})}:{home:'Chambres',mine:'Mes réservations'};
+ $('#nav').innerHTML=Object.entries(T).map(([k,v])=>`<button class="${k===tab?'on':''}" onclick="go('${k}')">${v}</button>`).join('')+(me?`<button onclick="out()">Quitter</button>`:'');
+ $('#app').innerHTML=({home:vHome,auth:vAuth,mine:vMine,dash:vDash,res:vRes,rooms:vRooms,users:vUsers}[tab]||vHome)()+(staff()?'':`<a class="p w fab" target="_blank" rel="noopener" href="${wa(CFG.wa,"Bonjour Résidence Hotel Amani, j'ai une question.")}">WhatsApp</a>`);
+}
+async function out(){await db.auth.signOut();me=null;data=[];tab='home';render()}
+
+/* ---- Client : chambres, inscription, réservation ---- */
+function vHome(){return `<section class="hero"><h1>Confort, hospitalité, sérénité.</h1><p>Réservez votre chambre en quelques secondes et recevez la confirmation directement sur WhatsApp.</p>${me?'':`<button class="p" style="background:var(--gold)" onclick="mode='up';go('auth')">Créer mon compte</button>`}</section>
+<div class="grid">${types.map(t=>`<div class="card"><h3>${esc(t.name)}</h3><p class="mut">${esc(t.description)}</p><p class="mut">${esc(t.amenities)} · ${t.capacity} pers.</p><div class="price">${fmt(t.price)} / nuit</div><button class="p" style="margin-top:10px" onclick="book(${t.id})">Réserver</button></div>`).join('')||'<p class="mut">Aucune chambre disponible.</p>'}</div>
+<p class="mut" style="margin-top:18px">Appelez-nous : <a href="tel:${CFG.tel}">${CFG.tel}</a> · ${CFG.email}</p>`}
+function vAuth(){const up=mode==='up';return `<form class="card auth" onsubmit="auth(event)"><h2>${up?'Créer mon compte':'Connexion'}</h2>
+${up?'<label>Nom complet<input name="n" required autocomplete="name"></label>':''}<label>Numéro de téléphone<input name="p" type="tel" inputmode="tel" required placeholder="07 00 00 00 00" autocomplete="tel"></label>
+<label>Mot de passe<input name="w" type="password" required minlength="6" autocomplete="${up?'new':'current'}-password"></label><p class="err" id="err"></p>
+<button class="p">${up?'Créer mon compte':'Me connecter'}</button> <button type="button" class="s" onclick="mode='${up?'in':'up'}';render()">${up?'J\'ai déjà un compte':'Pas encore de compte'}</button></form>`}
+async function auth(e){e.preventDefault();const f=e.target,p=f.p.value.replace(/\D/g,'').slice(-10);if(p.length<10)return $('#err').textContent='Entrez un numéro à 10 chiffres.';
+ let r;if(mode==='up')r=await db.auth.signUp({email:mail(p),password:f.w.value,options:{data:{full_name:f.n.value.trim(),phone:p}}});else r=await db.auth.signInWithPassword({email:mail(p),password:f.w.value});
+ if(r.error)return $('#err').textContent=r.error.message.includes('Invalid')?'Numéro ou mot de passe incorrect.':r.error.message.includes('registered')?'Ce numéro a déjà un compte.':r.error.message;
+ tab='home';await boot()}
+function book(tid){if(!me){mode='up';return go('auth')}const t=types.find(x=>x.id===tid),d=new Date().toISOString().slice(0,10);
+ dlg(`<h2>${esc(t.name)}</h2><form onsubmit="saveBook(event,${tid})"><div class="row"><label>Arrivée<input name="a" type="date" min="${d}" value="${d}" required></label><label>Départ<input name="d" type="date" min="${d}" required></label></div>
+<label>Personnes<input name="g" type="number" min="1" max="${t.capacity}" value="1"></label><label>Précisions (facultatif)<textarea name="n" rows="2"></textarea></label><p class="err" id="err"></p><button class="p">Envoyer la demande</button> <button type="button" class="s" onclick="closeD()">Annuler</button></form>`)}
+async function saveBook(e,tid){e.preventDefault();const f=e.target;if(f.d.value<=f.a.value)return $('#err').textContent='La date de départ doit suivre l\'arrivée.';
+ const{error}=await db.from('bookings').insert({client_id:me.id,type_id:tid,check_in:f.a.value,check_out:f.d.value,guests:+f.g.value,notes:f.n.value});
+ if(error)return $('#err').textContent=error.message;const t=types.find(x=>x.id===tid);closeD();toast('Demande envoyée');
+ window.open(wa(CFG.wa,`Bonjour, je suis ${me.full_name}. J'ai demandé une ${t.name} du ${dt(f.a.value)} au ${dt(f.d.value)} pour ${f.g.value} personne(s). Pouvez-vous confirmer ?`),'_blank');go('mine')}
+function vMine(){return `<h2 style="margin-bottom:12px">Mes réservations</h2>${data.map(b=>`<div class="card" style="margin-bottom:10px"><b>${esc(b.room_types?.name)}</b> ${tag(b.status)}<div class="mut">${dt(b.check_in)} → ${dt(b.check_out)} · ${nights(b)} nuit(s) · ${fmt(nights(b)*(b.room_types?.price||0))}</div>
+${b.rooms?`<div>Chambre ${esc(b.rooms.number)}</div>`:''}${b.status==='en_attente'?`<button class="s sm" onclick="setB(${b.id},'annulee')">Annuler</button>`:''}</div>`).join('')||'<p class="mut">Aucune réservation. Choisissez une chambre dans l\'onglet Chambres.</p>'}`}
+
+/* ---- Personnel ---- */
+async function setB(id,status,extra={}){const{error}=await db.from('bookings').update({status,...extra}).eq('id',id);if(error)return toast(error.message);await load();render()}
+function vDash(){const t0=new Date().toISOString().slice(0,10),act=data.filter(b=>['confirmee','arrivee','terminee'].includes(b.status)),
+ rev=act.reduce((s,b)=>s+nights(b)*(b.room_types?.price||0),0),occ=rooms.filter(r=>r.status==='occupee').length;
+ return `<h2 style="margin-bottom:12px">Tableau de bord</h2><div class="kpis"><div class="card kpi"><b>${data.filter(b=>b.status==='en_attente').length}</b><span class="mut">Demandes à traiter</span></div>
+<div class="card kpi"><b>${data.filter(b=>b.check_in===t0&&b.status==='confirmee').length}</b><span class="mut">Arrivées aujourd'hui</span></div><div class="card kpi"><b>${occ}/${rooms.length}</b><span class="mut">Chambres occupées</span></div><div class="card kpi"><b>${fmt(rev)}</b><span class="mut">Chiffre d'affaires réservé</span></div></div>
+<div class="grid">${rooms.map(r=>`<div class="card"><b>${esc(r.number)}</b> ${tag(r.status)}<div class="mut">${esc(r.room_types?.name)}</div></div>`).join('')}</div>`}
+let flt='en_attente';
+function vRes(){const L=data.filter(b=>flt==='all'||b.status===flt);
+ return `<h2 style="margin-bottom:12px">Réservations</h2><select style="max-width:220px" onchange="flt=this.value;render()">${['all',...Object.keys(S).slice(0,5)].map(k=>`<option value="${k}" ${k===flt?'selected':''}>${k==='all'?'Toutes':S[k]}</option>`).join('')}</select>
+<div class="card scroll" style="margin-top:12px"><table>${L.map(b=>`<tr><td><b>${esc(b.profiles?.full_name)}</b><div class="mut">${esc(b.profiles?.phone)}</div></td><td>${esc(b.room_types?.name)}${b.rooms?` · Ch. ${esc(b.rooms.number)}`:''}<div class="mut">${dt(b.check_in)} → ${dt(b.check_out)} · ${b.guests} pers.</div>${b.notes?`<div class="mut">${esc(b.notes)}</div>`:''}</td><td>${tag(b.status)}</td>
+<td>${manage()?act(b):''}<a class="p w sm" style="padding:6px 10px;font-size:12px" target="_blank" rel="noopener" href="${wa(cw(b.profiles?.phone),msg(b))}">WhatsApp</a></td></tr>`).join('')||'<tr><td>Aucune réservation.</td></tr>'}</table></div>`}
+const msg=b=>b.status==='confirmee'?`Bonjour ${b.profiles?.full_name}, votre réservation du ${dt(b.check_in)} au ${dt(b.check_out)} est confirmée${b.rooms?` (chambre ${b.rooms.number})`:''}. Résidence Hotel Amani vous attend !`:`Bonjour ${b.profiles?.full_name}, ici Résidence Hotel Amani, à propos de votre réservation du ${dt(b.check_in)}.`;
+function act(b){const B=(s,l,c='s')=>`<button class="${c} sm" onclick="setB(${b.id},'${s}'${s==='arrivee'?',{}':''});${s==='arrivee'?`roomSt(${b.room_id},'occupee')`:s==='terminee'?`roomSt(${b.room_id},'nettoyage')`:''}">${l}</button>`;
+ if(b.status==='en_attente')return `<button class="p sm" onclick="confirmB(${b.id},${b.type_id})">Confirmer</button>${B('annulee','Refuser','d')}`;
+ if(b.status==='confirmee')return B('arrivee','Arrivée','p')+B('annulee','Annuler','d');if(b.status==='arrivee')return B('terminee','Départ','p');return ''}
+const roomSt=async(id,status)=>{if(id){await db.from('rooms').update({status}).eq('id',id);await load();render()}};
+function confirmB(id,tid){const free=rooms.filter(r=>r.type_id===tid&&r.status==='libre');
+ dlg(`<h2>Attribuer une chambre</h2><form onsubmit="doConf(event,${id})"><label>Chambre<select name="r" required>${free.map(r=>`<option value="${r.id}">${esc(r.number)}</option>`).join('')||'<option value="">Aucune chambre libre de ce type</option>'}</select></label><button class="p">Confirmer</button> <button type="button" class="s" onclick="closeD()">Annuler</button></form>`)}
+async function doConf(e,id){e.preventDefault();if(!e.target.r.value)return;await setB(id,'confirmee',{room_id:+e.target.r.value});closeD();const b=data.find(x=>x.id===id);if(b)window.open(wa(cw(b.profiles?.phone),msg(b)),'_blank')}
+function vRooms(){return `<h2 style="margin-bottom:12px">Chambres et tarifs</h2>${conf()?`<p><button class="p" onclick="addRoom()">Ajouter une chambre</button></p>`:''}
+<div class="card scroll"><table>${rooms.map(r=>`<tr><td><b>${esc(r.number)}</b></td><td>${esc(r.room_types?.name)}</td><td>${manage()?`<select onchange="roomSt(${r.id},this.value)">${['libre','occupee','nettoyage','maintenance'].map(s=>`<option value="${s}" ${s===r.status?'selected':''}>${S[s]}</option>`).join('')}</select>`:tag(r.status)}</td></tr>`).join('')}</table></div>
+<h3 style="margin:20px 0 8px">Types de chambre</h3><div class="grid">${types.map(t=>`<div class="card"><b>${esc(t.name)}</b><div class="price">${fmt(t.price)}</div>${conf()?`<button class="s sm" onclick="setPrice(${t.id},${t.price})">Modifier le prix</button>`:''}</div>`).join('')}</div>`}
+async function setPrice(id,p){const v=prompt('Nouveau prix par nuit (F CFA)',p);if(v&&+v>=0){await db.from('room_types').update({price:+v}).eq('id',id);await load();render()}}
+async function addRoom(){const n=prompt('Numéro de la chambre');if(!n)return;const t=prompt('Type : '+types.map(t=>t.id+' = '+t.name).join(', '),types[0]?.id);if(!t)return;
+ const{error}=await db.from('rooms').insert({number:n.trim(),type_id:+t});if(error)return toast(error.message);await load();render()}
+function vUsers(){return `<h2 style="margin-bottom:6px">Utilisateurs et accès</h2><p class="mut">Le personnel crée son compte comme un client (onglet Connexion), puis vous lui attribuez son rôle ici.</p>
+<div class="card scroll"><table>${users.map(u=>`<tr><td><b>${esc(u.full_name)}</b><div class="mut">${esc(u.phone)}</div></td><td><select ${u.id===me.id?'disabled':''} onchange="setRole('${u.id}',this.value)">${Object.entries(R).map(([k,v])=>`<option value="${k}" ${k===u.role?'selected':''}>${v}</option>`).join('')}</select></td></tr>`).join('')}</table></div>`}
+async function setRole(id,role){const{error}=await db.from('profiles').update({role}).eq('id',id);toast(error?error.message:'Rôle mis à jour')}
+
+/* ---- PWA ---- */
+let DP=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault();DP=e;$('#inst').hidden=false});
+$('#inst').onclick=async()=>{DP.prompt();await DP.userChoice;$('#inst').hidden=true};
+if('serviceWorker'in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});
+boot();
+</script>
+</body>
+</html>
