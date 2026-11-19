@@ -13,7 +13,7 @@
 <style>
 :root{--g:#0E3B2C;--g2:#1B5A44;--gold:#B58A3C;--gold2:#D9B96A;--bg:#FAF8F3;--ink:#18231E;--mut:#66726C;--line:#E4DFD2;--red:#B3382C;--ok:#2E7D52;--card:#fff;--sh:0 1px 0 var(--line)}
 @media(prefers-color-scheme:dark){:root{--bg:#0B1612;--ink:#EDEBE3;--mut:#9AA7A0;--line:#25362E;--card:#122019;--g:#0E3B2C}}
-*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+[hidden]{display:none!important}*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Manrope,system-ui,sans-serif;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 h1,h2,h3{font-family:"Cormorant Garamond",Georgia,serif;margin:0;line-height:1.1}
 header{background:var(--g);color:#fff;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
@@ -45,6 +45,7 @@ dialog{border:0;border-radius:12px;max-width:460px;width:calc(100% - 24px);backg
 .auth{max-width:400px;margin:30px auto}.err{color:var(--red);font-weight:600;min-height:20px}
 .fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:6;border-radius:50px;padding:14px 18px;box-shadow:0 4px 14px #0004}
 #toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:var(--g);color:#fff;padding:10px 16px;border-radius:8px;z-index:20}
+@media print{header,button,select,.fab,#toast,.hero{display:none!important}body{background:#fff;color:#000}}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 @media(prefers-reduced-motion:no-preference){.hero{animation:in .6s ease-out}@keyframes in{from{opacity:0;transform:translateY(8px)}}}
 </style>
@@ -53,6 +54,7 @@ dialog{border:0;border-radius:12px;max-width:460px;width:calc(100% - 24px);backg
 <header><div class="bar"><div class="brand"><img src="icon.svg" alt=""><div>RÉSIDENCE HOTEL<small>AMANI</small></div></div><nav id="nav"></nav><button id="inst" class="s sm" hidden style="color:#fff">Installer</button></div></header>
 <main id="app"></main>
 <dialog id="dlg"></dialog><div id="toast" hidden role="status"></div>
+<script src="modules.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 /* ====== CONFIGURATION : à remplir (Supabase > Project Settings > API) ====== */
@@ -67,36 +69,39 @@ const nights=b=>Math.max(1,Math.round((new Date(b.check_out)-new Date(b.check_in
 const wa=(p,t)=>`https://wa.me/${p}?text=${encodeURIComponent(t)}`,cw=p=>'225'+String(p||'').replace(/\D/g,'').slice(-10);
 const mail=p=>String(p).replace(/\D/g,'').slice(-10)+'@amani.app';
 let db,me=null,tab='home',types=[],rooms=[],data=[],users=[],mode='in';
-const staff=()=me&&me.role!=='client',manage=()=>['receptionniste','gerant','admin'].includes(me?.role),conf=()=>['gerant','admin'].includes(me?.role);
+const staff=()=>me&&me.role!=='client',manage=()=>['receptionniste','gerant','admin'].includes(me?.role),conf=()=>['gerant','admin'].includes(me?.role);
 const toast=m=>{const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2500)};
 const dlg=h=>{$('#dlg').innerHTML=h;$('#dlg').showModal()},closeD=()=>$('#dlg').close();
 
 async function boot(){
  if(CFG.url.startsWith('COLLER')){$('#app').innerHTML='<div class="card"><h2>Configuration requise</h2><p>Ouvrez <b>index.html</b>, remplacez COLLER_URL_SUPABASE et COLLER_CLE_ANON par les valeurs de votre projet Supabase.</p></div>';return}
+ try{if(typeof supabase==='undefined')throw new Error("Le service Supabase n'a pas pu se charger. Vérifiez la connexion internet et rechargez la page.");
  db=supabase.createClient(CFG.url,CFG.key);
  const{data:{session}}=await db.auth.getSession();me=null;
  if(session)me=(await db.from('profiles').select('*').eq('id',session.user.id).single()).data;
  await load();if(me&&tab==='home'&&staff())tab='dash';render();
+ }catch(e){$('#app').innerHTML=`<div class="card"><h2>Chargement impossible</h2><p>${esc(e.message)}</p><button class="p" onclick="location.reload()">Recharger</button></div>`}
 }
+addEventListener('error',e=>{if(!$('#app').innerHTML.trim())$('#app').innerHTML=`<div class="card"><h2>Erreur</h2><p>${esc(e.message)}</p></div>`});
 async function load(){
  types=(await db.from('room_types').select('*').order('price')).data||[];
  if(!me)return;
  let q=db.from('bookings').select('*,profiles(full_name,phone),room_types(name,price),rooms(number)').order('created_at',{ascending:false});
  if(!staff())q=q.eq('client_id',me.id);data=(await q).data||[];
- if(staff())rooms=(await db.from('rooms').select('*,room_types(name)').order('number')).data||[];
+ if(staff()){rooms=(await db.from('rooms').select('*,room_types(name)').order('number')).data||[];await loadMore()}
  if(me.role==='admin')users=(await db.from('profiles').select('*').order('created_at')).data||[];
 }
 const go=async t=>{tab=t;await load();render()};
 function render(){
- const T=!me?{home:'Chambres',auth:'Connexion'}:staff()?{dash:'Tableau de bord',res:'Réservations',rooms:'Chambres',...(me.role==='admin'?{users:'Utilisateurs'}:{})}:{home:'Chambres',mine:'Mes réservations'};
+ const T=!me?{home:'Chambres',auth:'Connexion'}:staff()?staffTabs():{home:'Chambres',mine:'Mes réservations'};
  $('#nav').innerHTML=Object.entries(T).map(([k,v])=>`<button class="${k===tab?'on':''}" onclick="go('${k}')">${v}</button>`).join('')+(me?`<button onclick="out()">Quitter</button>`:'');
- $('#app').innerHTML=({home:vHome,auth:vAuth,mine:vMine,dash:vDash,res:vRes,rooms:vRooms,users:vUsers}[tab]||vHome)()+(staff()?'':`<a class="p w fab" target="_blank" rel="noopener" href="${wa(CFG.wa,"Bonjour Résidence Hotel Amani, j'ai une question.")}">WhatsApp</a>`);
+ $('#app').innerHTML=({home:vHome,auth:vAuth,mine:vMine,dash:vDash,res:vRes,rooms:vRooms,users:vUsers,...XV}[tab]||vHome)()+(staff()?'':`<a class="p w fab" target="_blank" rel="noopener" href="${wa(CFG.wa,"Bonjour Résidence Hotel Amani, j'ai une question.")}">WhatsApp</a>`);
 }
 async function out(){await db.auth.signOut();me=null;data=[];tab='home';render()}
 
 /* ---- Client : chambres, inscription, réservation ---- */
 function vHome(){return `<section class="hero"><h1>Confort, hospitalité, sérénité.</h1><p>Réservez votre chambre en quelques secondes et recevez la confirmation directement sur WhatsApp.</p>${me?'':`<button class="p" style="background:var(--gold)" onclick="mode='up';go('auth')">Créer mon compte</button>`}</section>
-<div class="grid">${types.map(t=>`<div class="card"><h3>${esc(t.name)}</h3><p class="mut">${esc(t.description)}</p><p class="mut">${esc(t.amenities)} · ${t.capacity} pers.</p><div class="price">${fmt(t.price)} / nuit</div><button class="p" style="margin-top:10px" onclick="book(${t.id})">Réserver</button></div>`).join('')||'<p class="mut">Aucune chambre disponible.</p>'}</div>
+<div class="grid">${types.map(t=>`<div class="card">${t.photo_url?`<img src="${esc(t.photo_url)}" alt="${esc(t.name)}" loading="lazy" style="width:100%;height:170px;object-fit:cover;border-radius:8px;margin-bottom:10px">`:''}<h3>${esc(t.name)}</h3><p class="mut">${esc(t.description)}</p><p class="mut">${esc(t.amenities)} · ${t.capacity} pers.</p><div class="price">${fmt(t.price)} / nuit</div><button class="p" style="margin-top:10px" onclick="book(${t.id})">Réserver</button></div>`).join('')||'<p class="mut">Aucune chambre disponible.</p>'}</div>
 <p class="mut" style="margin-top:18px">Appelez-nous : <a href="tel:${CFG.tel}">${CFG.tel}</a> · ${CFG.email}</p>`}
 function vAuth(){const up=mode==='up';return `<form class="card auth" onsubmit="auth(event)"><h2>${up?'Créer mon compte':'Connexion'}</h2>
 ${up?'<label>Nom complet<input name="n" required autocomplete="name"></label>':''}<label>Numéro de téléphone<input name="p" type="tel" inputmode="tel" required placeholder="07 00 00 00 00" autocomplete="tel"></label>
@@ -131,14 +136,14 @@ function vRes(){const L=data.filter(b=>flt==='all'||b.status===flt);
 const msg=b=>b.status==='confirmee'?`Bonjour ${b.profiles?.full_name}, votre réservation du ${dt(b.check_in)} au ${dt(b.check_out)} est confirmée${b.rooms?` (chambre ${b.rooms.number})`:''}. Résidence Hotel Amani vous attend !`:`Bonjour ${b.profiles?.full_name}, ici Résidence Hotel Amani, à propos de votre réservation du ${dt(b.check_in)}.`;
 function act(b){const B=(s,l,c='s')=>`<button class="${c} sm" onclick="setB(${b.id},'${s}'${s==='arrivee'?',{}':''});${s==='arrivee'?`roomSt(${b.room_id},'occupee')`:s==='terminee'?`roomSt(${b.room_id},'nettoyage')`:''}">${l}</button>`;
  if(b.status==='en_attente')return `<button class="p sm" onclick="confirmB(${b.id},${b.type_id})">Confirmer</button>${B('annulee','Refuser','d')}`;
- if(b.status==='confirmee')return B('arrivee','Arrivée','p')+B('annulee','Annuler','d');if(b.status==='arrivee')return B('terminee','Départ','p');return ''}
+ const P=`<button class="s sm" onclick="pay(${b.id})">Encaisser</button>`;if(b.status==='confirmee')return `<button class="p sm" onclick="arrive(${b.id})">Arrivée</button>`+P+B('annulee','Annuler','d');if(b.status==='arrivee')return B('terminee','Départ','p')+P;if(b.status==='terminee')return P;return ''}
 const roomSt=async(id,status)=>{if(id){await db.from('rooms').update({status}).eq('id',id);await load();render()}};
 function confirmB(id,tid){const free=rooms.filter(r=>r.type_id===tid&&r.status==='libre');
  dlg(`<h2>Attribuer une chambre</h2><form onsubmit="doConf(event,${id})"><label>Chambre<select name="r" required>${free.map(r=>`<option value="${r.id}">${esc(r.number)}</option>`).join('')||'<option value="">Aucune chambre libre de ce type</option>'}</select></label><button class="p">Confirmer</button> <button type="button" class="s" onclick="closeD()">Annuler</button></form>`)}
 async function doConf(e,id){e.preventDefault();if(!e.target.r.value)return;await setB(id,'confirmee',{room_id:+e.target.r.value});closeD();const b=data.find(x=>x.id===id);if(b)window.open(wa(cw(b.profiles?.phone),msg(b)),'_blank')}
 function vRooms(){return `<h2 style="margin-bottom:12px">Chambres et tarifs</h2>${conf()?`<p><button class="p" onclick="addRoom()">Ajouter une chambre</button></p>`:''}
 <div class="card scroll"><table>${rooms.map(r=>`<tr><td><b>${esc(r.number)}</b></td><td>${esc(r.room_types?.name)}</td><td>${manage()?`<select onchange="roomSt(${r.id},this.value)">${['libre','occupee','nettoyage','maintenance'].map(s=>`<option value="${s}" ${s===r.status?'selected':''}>${S[s]}</option>`).join('')}</select>`:tag(r.status)}</td></tr>`).join('')}</table></div>
-<h3 style="margin:20px 0 8px">Types de chambre</h3><div class="grid">${types.map(t=>`<div class="card"><b>${esc(t.name)}</b><div class="price">${fmt(t.price)}</div>${conf()?`<button class="s sm" onclick="setPrice(${t.id},${t.price})">Modifier le prix</button>`:''}</div>`).join('')}</div>`}
+<h3 style="margin:20px 0 8px">Types de chambre</h3><div class="grid">${types.map(t=>`<div class="card"><b>${esc(t.name)}</b><div class="price">${fmt(t.price)}</div>${t.photo_url?`<img src="${esc(t.photo_url)}" alt="" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin:6px 0">`:''}${conf()?`<button class="s sm" onclick="setPrice(${t.id},${t.price})">Modifier le prix</button><button class="s sm" onclick="photo(${t.id})">Photo</button>`:''}</div>`).join('')}</div>`}
 async function setPrice(id,p){const v=prompt('Nouveau prix par nuit (F CFA)',p);if(v&&+v>=0){await db.from('room_types').update({price:+v}).eq('id',id);await load();render()}}
 async function addRoom(){const n=prompt('Numéro de la chambre');if(!n)return;const t=prompt('Type : '+types.map(t=>t.id+' = '+t.name).join(', '),types[0]?.id);if(!t)return;
  const{error}=await db.from('rooms').insert({number:n.trim(),type_id:+t});if(error)return toast(error.message);await load();render()}
