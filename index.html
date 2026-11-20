@@ -152,11 +152,9 @@ function photo(id){const i=document.createElement('input');i.type='file';i.accep
 const XV={cal:vCal,hk:vHk,cash:vCash,reg:vReg,watch:vWatch,rep:vRep};
 
 </script>
+<script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
-/* ====== CONFIGURATION : à remplir (Supabase > Project Settings > API) ====== */
-const CFG={url:'https://etecqfziuvkesyqluoao.supabase.co',key:'sb_publishable_ealfXpF2YqDhNJpHwAoe4A_k8OIrsxa',wa:'2250747438115',tel:'+22527244651 59'.replace(' ',''),email:'residencehotelamani@gmail.com'};
-/* ========================================================================== */
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const R={client:'Client',receptionniste:'Réceptionniste',gerant:'Gérant',proprietaire:'Propriétaire',admin:'Administrateur'};
 const S={en_attente:'En attente',confirmee:'Confirmée',arrivee:'En séjour',terminee:'Terminée',annulee:'Annulée',libre:'Libre',occupee:'Occupée',nettoyage:'À nettoyer',maintenance:'Maintenance'};
@@ -165,7 +163,7 @@ const fmt=n=>(n||0).toLocaleString('fr-FR')+' F',dt=d=>new Date(d).toLocaleDateS
 const nights=b=>Math.max(1,Math.round((new Date(b.check_out)-new Date(b.check_in))/864e5));
 const wa=(p,t)=>`https://wa.me/${p}?text=${encodeURIComponent(t)}`,cw=p=>'225'+String(p||'').replace(/\D/g,'').slice(-10);
 const mail=p=>String(p).replace(/\D/g,'').slice(-10)+'@amani.app';
-let db,me=null,tab='home',types=[],rooms=[],data=[],users=[],mode='in';
+let loadErr='',db,me=null,tab='home',types=[],rooms=[],data=[],users=[],mode='in';
 const staff=()=>me&&me.role!=='client',manage=()=>['receptionniste','gerant','admin'].includes(me?.role),conf=()=>['gerant','admin'].includes(me?.role);
 const toast=m=>{const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2500)};
 const dlg=h=>{$('#dlg').innerHTML=h;$('#dlg').showModal()},closeD=()=>$('#dlg').close();
@@ -181,7 +179,7 @@ async function boot(){
 }
 addEventListener('error',e=>{if(!$('#app').innerHTML.trim())$('#app').innerHTML=`<div class="card"><h2>Erreur</h2><p>${esc(e.message)}</p></div>`});
 async function load(){
- types=(await db.from('room_types').select('*').order('price')).data||[];
+ {const r=await db.from('room_types').select('*').order('price');types=r.data||[];loadErr=r.error?r.error.message:''}
  if(!me)return;
  let q=db.from('bookings').select('*,profiles(full_name,phone),room_types(name,price),rooms(number)').order('created_at',{ascending:false});
  if(!staff())q=q.eq('client_id',me.id);data=(await q).data||[];
@@ -192,13 +190,13 @@ const go=async t=>{tab=t;await load();render()};
 function render(){
  const T=!me?{home:'Chambres',auth:'Connexion'}:staff()?staffTabs():{home:'Chambres',mine:'Mes réservations'};
  $('#nav').innerHTML=Object.entries(T).map(([k,v])=>`<button class="${k===tab?'on':''}" onclick="go('${k}')">${v}</button>`).join('')+(me?`<button onclick="out()">Déconnexion</button>`:''); $('#who').innerHTML=me?`<span style="font-size:12px;color:#cfe0d7">${esc(me.full_name)} · ${R[me.role]}</span><button class="s sm" style="color:#fff" onclick="out()">Déconnexion</button>`:'';
- $('#app').innerHTML=({home:vHome,auth:vAuth,mine:vMine,dash:vDash,res:vRes,rooms:vRooms,users:vUsers,...XV}[tab]||vHome)()+(me?`<button class="s" style="position:fixed;left:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:6;background:var(--card)" onclick="out()">Déconnexion</button>`:'')+`<p class="mut" style="text-align:center;margin-top:30px">Version 4</p>`+(staff()?'':`<a class="p w fab" target="_blank" rel="noopener" href="${wa(CFG.wa,"Bonjour Résidence Hotel Amani, j'ai une question.")}">WhatsApp</a>`);
+ $('#app').innerHTML=({home:vHome,auth:vAuth,mine:vMine,dash:vDash,res:vRes,rooms:vRooms,users:vUsers,...XV}[tab]||vHome)()+(me?`<button class="s" style="position:fixed;left:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:6;background:var(--card)" onclick="out()">Déconnexion</button>`:'')+`<p class="mut" style="text-align:center;margin-top:30px">Version 5</p>`+(staff()?'':`<a class="p w fab" target="_blank" rel="noopener" href="${wa(CFG.wa,"Bonjour Résidence Hotel Amani, j'ai une question.")}">WhatsApp</a>`);
 }
 async function out(){await db.auth.signOut();me=null;data=[];tab='home';render()}
 
 /* ---- Client : chambres, inscription, réservation ---- */
 function vHome(){return `<section class="hero"><h1>Confort, hospitalité, sérénité.</h1><p>Réservez votre chambre en quelques secondes et recevez la confirmation directement sur WhatsApp.</p>${me?'':`<button class="p" style="background:var(--gold)" onclick="mode='up';go('auth')">Créer mon compte</button>`}</section>
-<div class="grid">${types.map(t=>`<div class="card">${t.photo_url?`<img src="${esc(t.photo_url)}" alt="${esc(t.name)}" loading="lazy" style="width:100%;height:170px;object-fit:cover;border-radius:8px;margin-bottom:10px">`:''}<h3>${esc(t.name)}</h3><p class="mut">${esc(t.description)}</p><p class="mut">${esc(t.amenities)} · ${t.capacity} pers.</p><div class="price">${fmt(t.price)} / nuit</div><button class="p" style="margin-top:10px" onclick="book(${t.id})">Réserver</button></div>`).join('')||'<p class="mut">Aucune chambre disponible.</p>'}</div>
+<div class="grid">${types.map(t=>`<div class="card">${t.photo_url?`<img src="${esc(t.photo_url)}" alt="${esc(t.name)}" loading="lazy" style="width:100%;height:170px;object-fit:cover;border-radius:8px;margin-bottom:10px">`:''}<h3>${esc(t.name)}</h3><p class="mut">${esc(t.description)}</p><p class="mut">${esc(t.amenities)} · ${t.capacity} pers.</p><div class="price">${fmt(t.price)} / nuit</div><button class="p" style="margin-top:10px" onclick="book(${t.id})">Réserver</button></div>`).join('')||`<p class="mut">Aucune chambre disponible.${loadErr?' Erreur : '+esc(loadErr):''}</p>`}</div>
 <p class="mut" style="margin-top:18px">Appelez-nous : <a href="tel:${CFG.tel}">${CFG.tel}</a> · ${CFG.email}</p>`}
 function vAuth(){const up=mode==='up';return `<form class="card auth" onsubmit="auth(event)"><h2>${up?'Créer mon compte':'Connexion'}</h2>
 ${up?'<label>Nom complet<input name="n" required autocomplete="name"></label>':''}<label>Numéro de téléphone<input name="p" type="tel" inputmode="tel" required placeholder="07 00 00 00 00" autocomplete="tel"></label>
