@@ -58,7 +58,7 @@ dialog{border:0;border-radius:12px;max-width:460px;width:calc(100% - 24px);backg
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 /* ====== CONFIGURATION : à remplir (Supabase > Project Settings > API) ====== */
-const CFG={url:'https://etecqfziuvkesyqluoao.supabase.co',key:'sb_publishable_ealfXpF2YqDhNJpHwAoe4A_k8OIrsxa',wa:'2250747438115',tel:'+22527244651 59'.replace(' ',''),email:'residencehotelamani@gmail.com'};
+const CFG={url:'COLLER_URL_SUPABASE',key:'COLLER_CLE_ANON',wa:'2250747438115',tel:'+22527244651 59'.replace(' ',''),email:'residencehotelamani@gmail.com'};
 /* ========================================================================== */
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const R={client:'Client',receptionniste:'Réceptionniste',gerant:'Gérant',proprietaire:'Propriétaire',admin:'Administrateur'};
@@ -94,8 +94,8 @@ async function load(){
 const go=async t=>{tab=t;await load();render()};
 function render(){
  const T=!me?{home:'Chambres',auth:'Connexion'}:staff()?staffTabs():{home:'Chambres',mine:'Mes réservations'};
- $('#nav').innerHTML=Object.entries(T).map(([k,v])=>`<button class="${k===tab?'on':''}" onclick="go('${k}')">${v}</button>`).join(''); $('#who').innerHTML=me?`<span style="font-size:12px;color:#cfe0d7">${esc(me.full_name)} · ${R[me.role]}</span><button class="s sm" style="color:#fff" onclick="out()">Déconnexion</button>`:'';
- $('#app').innerHTML=({home:vHome,auth:vAuth,mine:vMine,dash:vDash,res:vRes,rooms:vRooms,users:vUsers,...XV}[tab]||vHome)()+(staff()?'':`<a class="p w fab" target="_blank" rel="noopener" href="${wa(CFG.wa,"Bonjour Résidence Hotel Amani, j'ai une question.")}">WhatsApp</a>`);
+ $('#nav').innerHTML=Object.entries(T).map(([k,v])=>`<button class="${k===tab?'on':''}" onclick="go('${k}')">${v}</button>`).join('')+(me?`<button onclick="out()">Déconnexion</button>`:''); $('#who').innerHTML=me?`<span style="font-size:12px;color:#cfe0d7">${esc(me.full_name)} · ${R[me.role]}</span><button class="s sm" style="color:#fff" onclick="out()">Déconnexion</button>`:'';
+ $('#app').innerHTML=({home:vHome,auth:vAuth,mine:vMine,dash:vDash,res:vRes,rooms:vRooms,users:vUsers,...XV}[tab]||vHome)()+(me?`<button class="s" style="position:fixed;left:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:6;background:var(--card)" onclick="out()">Déconnexion</button>`:'')+`<p class="mut" style="text-align:center;margin-top:30px">Version 3</p>`+(staff()?'':`<a class="p w fab" target="_blank" rel="noopener" href="${wa(CFG.wa,"Bonjour Résidence Hotel Amani, j'ai une question.")}">WhatsApp</a>`);
 }
 async function out(){await db.auth.signOut();me=null;data=[];tab='home';render()}
 
