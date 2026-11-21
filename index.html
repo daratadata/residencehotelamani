@@ -46,6 +46,15 @@ dialog{border:0;border-radius:12px;max-width:460px;width:calc(100% - 24px);backg
 .fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:6;border-radius:50px;padding:14px 18px;box-shadow:0 4px 14px #0004}
 #toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:var(--g);color:#fff;padding:10px 16px;border-radius:8px;z-index:20}
 @media print{header,button,select,.fab,#toast,.hero{display:none!important}body{background:#fff;color:#000}}
+
+.kpis .kpi{border:0;color:#fff;box-shadow:0 6px 18px #0e3b2c26}.kpis .kpi span{color:#ffffffd9}
+.kpis .kpi:nth-child(1){background:linear-gradient(135deg,#1B5A44,#0E3B2C)}.kpis .kpi:nth-child(2){background:linear-gradient(135deg,#C9A04C,#9A7425)}
+.kpis .kpi:nth-child(3){background:linear-gradient(135deg,#2F6DB5,#1F4A82)}.kpis .kpi:nth-child(4){background:linear-gradient(135deg,#7A52B8,#523581)}
+.card{transition:transform .2s,box-shadow .2s}.grid .card:hover{transform:translateY(-3px);box-shadow:0 10px 24px #0e3b2c24}
+.rm{border-left:5px solid var(--line)}.rm.libre{border-left-color:#2E7D52}.rm.occupee{border-left-color:#2F6DB5}.rm.nettoyage{border-left-color:#8A5BC2}.rm.maintenance{border-left-color:#B3382C}
+nav button{border-radius:8px 8px 0 0;transition:color .2s,background .2s,border-color .2s}nav button:hover{color:#fff;background:#ffffff1a}
+header{background:linear-gradient(90deg,#0E3B2C,#14513C)}.p{transition:filter .2s,transform .1s}.p:hover{filter:brightness(1.12)}.p:active{transform:scale(.97)}
+@media(prefers-reduced-motion:no-preference){#app>*{animation:up .4s ease both}@keyframes up{from{opacity:0;transform:translateY(10px)}}.hero{background-size:200% 200%;animation:flow 14s ease infinite}@keyframes flow{0%,100%{background-position:0 50%}50%{background-position:100% 50%}}}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 @media(prefers-reduced-motion:no-preference){.hero{animation:in .6s ease-out}@keyframes in{from{opacity:0;transform:translateY(8px)}}}
 </style>
@@ -60,25 +69,23 @@ const MET={especes:'Espèces',orange_money:'Orange Money',mtn_momo:'MTN MoMo',wa
 const KIND={acompte:'Acompte',solde:'Solde',caution:'Caution',remboursement:'Remboursement'};
 let pays=[],clos=[],watch=[],off=0,rp=7,rg=30;
 const sum=a=>a.reduce((s,x)=>s+x,0),opts=o=>Object.entries(o).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
-const total=b=>nights(b)*(b.room_types?.price||0);
+const total=b=>b.total??nights(b)*(b.room_types?.price||0);
 const paid=id=>sum(pays.filter(p=>p.booking_id===id&&(p.kind==='acompte'||p.kind==='solde')).map(p=>p.amount));
 const iso=d=>new Date(d).toISOString().slice(0,10);
 const csv=(name,rows)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(';')).join('\n')],{type:'text/csv'}));a.download=name;a.click()};
 
 async function loadMore(){
- pays=(await db.from('payments').select('*,bookings(profiles(full_name),rooms(number))').order('at',{ascending:false})).data||[];
+ pays=(await db.from('payments').select('*,bookings(guest_name,profiles(full_name),rooms(number))').order('at',{ascending:false})).data||[];
  clos=(await db.from('cash_closings').select('*').order('at',{ascending:false}).limit(20)).data||[];
  watch=manage()||conf()?(await db.from('watchlist').select('*').order('created_at',{ascending:false})).data||[]:[];
 }
-function staffTabs(){const T={dash:'Tableau de bord',res:'Réservations',cal:'Calendrier',rooms:'Chambres'};
- if(manage())T.hk='Ménage';T.cash='Caisse';T.reg='Registre';if(manage())T.watch='À surveiller';
- if(me.role!=='receptionniste')T.rep='Rapports';if(me.role==='admin')T.users='Utilisateurs';return T}
+function staffTabs(){const T={dash:'Tableau de bord'};if(manage())T.rec='Réception';Object.assign(T,{res:'Réservations',cal:'Calendrier',rooms:'Chambres'});if(manage())T.hk='Ménage';T.cash='Caisse';T.reg='Registre';if(manage())T.watch='À surveiller';if(me.role!=='receptionniste')T.rep='Rapports';if(conf())T.set='Paramètres';if(me.role==='admin')T.users='Utilisateurs';return T}
 
 /* Calendrier d'occupation */
 function vCal(){const days=[...Array(14)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()+off+i);return iso(d)});
  const at=(r,d)=>data.find(b=>b.room_id===r.id&&['confirmee','arrivee'].includes(b.status)&&b.check_in<=d&&d<b.check_out);
  return `<h2 style="margin-bottom:10px">Calendrier d'occupation</h2><p><button class="s sm" onclick="off-=14;render()">Avant</button><button class="s sm" onclick="off=0;render()">Aujourd'hui</button><button class="s sm" onclick="off+=14;render()">Après</button></p>
-<div class="card scroll"><table><tr><th>Ch.</th>${days.map(d=>`<th>${dt(d)}</th>`).join('')}</tr>${rooms.map(r=>`<tr><td><b>${esc(r.number)}</b></td>${days.map(d=>{const b=at(r,d);return `<td title="${b?esc(b.profiles?.full_name):''}" style="padding:4px;font-size:11px;background:${b?(b.status==='arrivee'?'#CDDCF2':'#CFE8D8'):'none'};color:#14301f">${b?esc((b.profiles?.full_name||'').split(' ')[0]):''}</td>`}).join('')}</tr>`).join('')}</table></div>
+<div class="card scroll"><table><tr><th>Ch.</th>${days.map(d=>`<th>${dt(d)}</th>`).join('')}</tr>${rooms.map(r=>`<tr><td><b>${esc(r.number)}</b></td>${days.map(d=>{const b=at(r,d);return `<td title="${b?esc(gn(b)):''}" style="padding:4px;font-size:11px;background:${b?(b.status==='arrivee'?'#CDDCF2':'#CFE8D8'):'none'};color:#14301f">${b?esc((gn(b)||'').split(' ')[0]):''}</td>`}).join('')}</tr>`).join('')}</table></div>
 <p class="mut">Vert : réservée · Bleu : client en séjour.</p>`}
 
 /* Ménage */
@@ -87,13 +94,13 @@ function vHk(){const L=rooms.filter(r=>r.status==='nettoyage');
 
 /* Arrivée : fiche de police + contrôle liste de surveillance + caution */
 function arrive(id){const b=data.find(x=>x.id===id);
- dlg(`<h2>Arrivée de ${esc(b.profiles?.full_name)}</h2><form onsubmit="doArrive(event,${id})"><label>Nationalité<input name="nat" value="${esc(b.nationality||'Ivoirienne')}" required></label>
+ dlg(`<h2>Arrivée de ${esc(gn(b))}</h2><form onsubmit="doArrive(event,${id})"><label>Nationalité<input name="nat" value="${esc(b.nationality||'Ivoirienne')}" required></label>
 <div class="row"><label>Pièce<select name="it"><option>CNI</option><option>Passeport</option><option>Permis</option><option>Autre</option></select></label><label>Numéro<input name="in" value="${esc(b.id_number||'')}" required></label></div>
 <label>Venant de (ville / pays)<input name="pr" value="${esc(b.provenance||'')}"></label>
-<div class="row"><label>Caution (F, facultatif)<input name="c" type="number" min="0" step="500" value="0"></label><label>Mode<select name="m">${opts(MET)}</select></label></div>
+<div class="row"><label>Caution (F, facultatif)<input name="c" type="number" min="0" step="500" value="0"></label><label>Mode<select name="m">${opts(modes())}</select></label></div>
 <p class="err" id="err"></p><button class="p">Valider l'arrivée</button> <button type="button" class="s" onclick="closeD()">Annuler</button></form>`)}
 async function doArrive(e,id){e.preventDefault();const f=e.target,b=data.find(x=>x.id===id),n=s=>String(s||'').replace(/\s/g,'').toLowerCase();
- const w=watch.find(w=>(w.phone&&n(w.phone)===n(b.profiles?.phone))||(w.id_number&&n(w.id_number)===n(f.in.value))||(w.name&&n(w.name)===n(b.profiles?.full_name)));
+ const w=watch.find(w=>(w.phone&&n(w.phone)===n(gp(b)))||(w.id_number&&n(w.id_number)===n(f.in.value))||(w.name&&n(w.name)===n(gn(b))));
  if(w&&!confirm(`Client à surveiller : ${w.reason}. Valider quand même l'arrivée ?`))return;
  const{error}=await db.from('bookings').update({status:'arrivee',nationality:f.nat.value.trim(),id_type:f.it.value,id_number:f.in.value.trim(),provenance:f.pr.value.trim()}).eq('id',id);
  if(error)return $('#err').textContent=error.message;
@@ -102,7 +109,7 @@ async function doArrive(e,id){e.preventDefault();const f=e.target,b=data.find(x=
 
 /* Encaissement */
 function pay(id){const b=data.find(x=>x.id===id),due=Math.max(0,total(b)-paid(id));
- dlg(`<h2>Encaisser · ${esc(b.profiles?.full_name)}</h2><p class="mut">Séjour ${fmt(total(b))} · déjà payé ${fmt(paid(id))} · reste ${fmt(due)}</p><form onsubmit="doPay(event,${id})"><div class="row"><label>Type<select name="k">${opts(KIND)}</select></label><label>Mode<select name="m">${opts(MET)}</select></label></div>
+ dlg(`<h2>Encaisser · ${esc(gn(b))}</h2><p class="mut">Séjour ${fmt(total(b))} · déjà payé ${fmt(paid(id))} · reste ${fmt(due)}</p><form onsubmit="doPay(event,${id})"><div class="row"><label>Type<select name="k">${opts(KIND)}</select></label><label>Mode<select name="m">${opts(modes())}</select></label></div>
 <label>Montant (F)<input name="a" type="number" min="1" step="100" value="${due||''}" required></label><label>Référence Mobile Money (facultatif)<input name="r"></label><p class="err" id="err"></p><button class="p">Enregistrer</button> <button type="button" class="s" onclick="closeD()">Annuler</button></form>`)}
 async function doPay(e,id){e.preventDefault();const f=e.target,{error}=await db.from('payments').insert({booking_id:id,kind:f.k.value,method:f.m.value,amount:+f.a.value,ref:f.r.value});
  if(error)return $('#err').textContent=error.message;closeD();toast('Paiement enregistré');await load();render()}
@@ -114,8 +121,8 @@ function vCash(){const t0=new Date().setHours(0,0,0,0),last=clos.find(c=>c.by===
  debts=data.filter(b=>['arrivee','terminee'].includes(b.status)&&total(b)-paid(b.id)>0);
  return `<h2 style="margin-bottom:10px">Caisse</h2><div class="kpis"><div class="card kpi"><b>${fmt(cash)}</b><span class="mut">Espèces attendues</span></div><div class="card kpi"><b>${fmt(mob)}</b><span class="mut">Mobile Money et cartes</span></div></div>
 ${manage()?`<form class="card" style="max-width:380px" onsubmit="closeCash(event,${cash})"><b>Clôture de caisse</b><label>Espèces comptées (F)<input name="c" type="number" min="0" required></label><button class="p" style="margin-top:10px">Clôturer</button></form>`:''}
-${debts.length?`<h3 style="margin:18px 0 8px">Impayés</h3><div class="card scroll"><table>${debts.map(b=>`<tr><td>${esc(b.profiles?.full_name)}</td><td class="mut">Ch. ${esc(b.rooms?.number)}</td><td><b>${fmt(total(b)-paid(b.id))}</b></td><td>${manage()?`<button class="p sm" onclick="pay(${b.id})">Encaisser</button>`:''}<a class="p w sm" style="padding:6px 10px;font-size:12px" target="_blank" rel="noopener" href="${wa(cw(b.profiles?.phone),`Bonjour ${b.profiles?.full_name}, il reste ${fmt(total(b)-paid(b.id))} à régler pour votre séjour à Résidence Hotel Amani. Merci.`)}">Relancer</a></td></tr>`).join('')}</table></div>`:''}
-<h3 style="margin:18px 0 8px">Opérations</h3><div class="card scroll"><table>${ps.map(p=>`<tr><td>${new Date(p.at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</td><td>${esc(p.bookings?.profiles?.full_name)}</td><td>${KIND[p.kind]}</td><td>${MET[p.method]}${p.ref?' · '+esc(p.ref):''}</td><td><b>${p.kind==='remboursement'?'−':''}${fmt(p.amount)}</b></td></tr>`).join('')||'<tr><td>Aucune opération.</td></tr>'}</table></div>
+${debts.length?`<h3 style="margin:18px 0 8px">Impayés</h3><div class="card scroll"><table>${debts.map(b=>`<tr><td>${esc(gn(b))}</td><td class="mut">Ch. ${esc(b.rooms?.number)}</td><td><b>${fmt(total(b)-paid(b.id))}</b></td><td>${manage()?`<button class="p sm" onclick="pay(${b.id})">Encaisser</button>`:''}<a class="p w sm" style="padding:6px 10px;font-size:12px" target="_blank" rel="noopener" href="${wa(cw(gp(b)),`Bonjour ${gn(b)}, il reste ${fmt(total(b)-paid(b.id))} à régler pour votre séjour à Résidence Hotel Amani. Merci.`)}">Relancer</a></td></tr>`).join('')}</table></div>`:''}
+<h3 style="margin:18px 0 8px">Opérations</h3><div class="card scroll"><table>${ps.map(p=>`<tr><td>${new Date(p.at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</td><td>${esc(gn(p.bookings))}</td><td>${KIND[p.kind]}</td><td>${MET[p.method]}${p.ref?' · '+esc(p.ref):''}</td><td><b>${p.kind==='remboursement'?'−':''}${fmt(p.amount)}</b></td></tr>`).join('')||'<tr><td>Aucune opération.</td></tr>'}</table></div>
 ${clos.length?`<h3 style="margin:18px 0 8px">Dernières clôtures</h3><div class="card scroll"><table>${clos.map(c=>`<tr><td>${dt(c.at)}</td><td>Attendu ${fmt(c.expected)}</td><td>Compté ${fmt(c.counted)}</td><td style="color:${c.counted-c.expected?'var(--red)':'var(--ok)'}"><b>Écart ${fmt(c.counted-c.expected)}</b></td></tr>`).join('')}</table></div>`:''}`}
 async function closeCash(e,exp){e.preventDefault();const{error}=await db.from('cash_closings').insert({expected:exp,counted:+e.target.c.value});if(error)return toast(error.message);toast('Caisse clôturée');await load();render()}
 
@@ -123,8 +130,8 @@ async function closeCash(e,exp){e.preventDefault();const{error}=await db.from('c
 function vReg(){const from=Date.now()-rg*864e5,L=data.filter(b=>['arrivee','terminee'].includes(b.status)&&+new Date(b.check_in)>=from).sort((a,b)=>a.check_in<b.check_in?1:-1);
  return `<h2 style="margin-bottom:6px">Registre des voyageurs</h2><p class="mut">Fiche de police : remplie à chaque arrivée.</p><select style="max-width:200px" onchange="rg=+this.value;render()">${[[1,"Aujourd'hui"],[7,'7 jours'],[30,'30 jours'],[365,'12 mois']].map(([d,l])=>`<option value="${d}" ${d===rg?'selected':''}>${l}</option>`).join('')}</select>
 <p><button class="p sm" onclick="print()">Imprimer</button><button class="s sm" onclick="expReg()">Exporter CSV</button></p><div class="card scroll"><table><tr><th>Arrivée</th><th>Départ</th><th>Ch.</th><th>Nom</th><th>Nationalité</th><th>Pièce</th><th>Venant de</th><th>Tél.</th></tr>
-${L.map(b=>`<tr><td>${dt(b.check_in)}</td><td>${dt(b.check_out)}</td><td>${esc(b.rooms?.number)}</td><td>${esc(b.profiles?.full_name)}</td><td>${esc(b.nationality)}</td><td>${esc(b.id_type)} ${esc(b.id_number)}</td><td>${esc(b.provenance)}</td><td>${esc(b.profiles?.phone)}</td></tr>`).join('')||'<tr><td>Aucun séjour sur la période.</td></tr>'}</table></div>`}
-function expReg(){const from=Date.now()-rg*864e5;csv('registre-amani.csv',[['Arrivée','Départ','Chambre','Nom','Nationalité','Type pièce','N° pièce','Venant de','Téléphone'],...data.filter(b=>['arrivee','terminee'].includes(b.status)&&+new Date(b.check_in)>=from).map(b=>[b.check_in,b.check_out,b.rooms?.number,b.profiles?.full_name,b.nationality,b.id_type,b.id_number,b.provenance,b.profiles?.phone])])}
+${L.map(b=>`<tr><td>${dt(b.check_in)}</td><td>${dt(b.check_out)}</td><td>${esc(b.rooms?.number)}</td><td>${esc(gn(b))}</td><td>${esc(b.nationality)}</td><td>${esc(b.id_type)} ${esc(b.id_number)}</td><td>${esc(b.provenance)}</td><td>${esc(gp(b))}</td></tr>`).join('')||'<tr><td>Aucun séjour sur la période.</td></tr>'}</table></div>`}
+function expReg(){const from=Date.now()-rg*864e5;csv('registre-amani.csv',[['Arrivée','Départ','Chambre','Nom','Nationalité','Type pièce','N° pièce','Venant de','Téléphone'],...data.filter(b=>['arrivee','terminee'].includes(b.status)&&+new Date(b.check_in)>=from).map(b=>[b.check_in,b.check_out,b.rooms?.number,gn(b),b.nationality,b.id_type,b.id_number,b.provenance,gp(b)])])}
 
 /* Liste à surveiller */
 function vWatch(){return `<h2 style="margin-bottom:6px">Clients à surveiller</h2><p class="mut">Une alerte s'affiche à l'arrivée si le nom, le téléphone ou la pièce correspond. Données personnelles : ne gardez que le nécessaire.</p>
@@ -140,8 +147,8 @@ function vRep(){const from=Date.now()-rp*864e5,ps=pays.filter(p=>+new Date(p.at)
  return `<h2 style="margin-bottom:10px">Rapports</h2><select style="max-width:200px" onchange="rp=+this.value;render()">${[[1,"Aujourd'hui"],[7,'7 jours'],[30,'30 jours'],[365,'12 mois']].map(([d,l])=>`<option value="${d}" ${d===rp?'selected':''}>${l}</option>`).join('')}</select>
 <div class="kpis" style="margin-top:12px"><div class="card kpi"><b>${fmt(sum(ps.map(p=>p.amount)))}</b><span class="mut">Encaissé</span></div><div class="card kpi"><b>${bs.length}</b><span class="mut">Demandes reçues</span></div><div class="card kpi"><b>${bs.filter(b=>b.status==='annulee').length}</b><span class="mut">Annulées</span></div><div class="card kpi"><b>${ns}</b><span class="mut">Nuitées vendues</span></div></div>
 <div class="card"><b>Par mode de paiement</b><table>${Object.entries(MET).map(([k,v])=>`<tr><td>${v}</td><td><b>${fmt(sum(ps.filter(p=>p.method===k).map(p=>p.amount)))}</b></td></tr>`).join('')}</table></div>
-<p><button class="s sm" onclick="expPay()">Exporter les encaissements (CSV)</button></p>`}
-function expPay(){const from=Date.now()-rp*864e5;csv('encaissements-amani.csv',[['Date','Client','Chambre','Type','Mode','Montant','Référence'],...pays.filter(p=>+new Date(p.at)>=from).map(p=>[new Date(p.at).toLocaleString('fr-FR'),p.bookings?.profiles?.full_name,p.bookings?.rooms?.number,p.kind,MET[p.method],p.kind==='remboursement'?-p.amount:p.amount,p.ref])])}
+<p><button class="s sm" onclick="expPay()">Exporter les encaissements (CSV)</button> <button class="p sm" onclick="printReport()">Imprimer / PDF</button></p>`}
+function expPay(){const from=Date.now()-rp*864e5;csv('encaissements-amani.csv',[['Date','Client','Chambre','Type','Mode','Montant','Référence'],...pays.filter(p=>+new Date(p.at)>=from).map(p=>[new Date(p.at).toLocaleString('fr-FR'),gn(p.bookings),p.bookings?.rooms?.number,p.kind,MET[p.method],p.kind==='remboursement'?-p.amount:p.amount,p.ref])])}
 
 /* Photos des chambres */
 function photo(id){const i=document.createElement('input');i.type='file';i.accept='image/*';i.onchange=async()=>{const f=i.files[0];if(!f)return;toast('Envoi de la photo...');
@@ -150,6 +157,92 @@ function photo(id){const i=document.createElement('input');i.type='file';i.accep
  if(up.error)return toast(up.error.message);await db.from('room_types').update({photo_url:db.storage.from('room-photos').getPublicUrl(path).data.publicUrl}).eq('id',id);await load();render();toast('Photo enregistrée')};i.click()}
 
 const XV={cal:vCal,hk:vHk,cash:vCash,reg:vReg,watch:vWatch,rep:vRep};
+
+</script>
+<script>
+/* v6 : paramètres, réception, reçus 80 mm, factures A4, rapports PDF */
+const DEF={hotel:{name:'Résidence Hotel Amani',address:'',phone:'+225 27 24 46 51 59',whatsapp:'+225 07 47 43 81 15',email:'residencehotelamani@gmail.com',legal:'',tva:0,footer:"Merci d'avoir choisi Résidence Hotel Amani"},
+ comfort:['Climatisation','Ventilateur','WiFi','Canal+','Télévision','Eau chaude','Réfrigérateur','Cuisine équipée','Balcon','Groupe électrogène','Parking','Sécurité 24 h','Petit-déjeuner'],
+ payments:{especes:{on:true},orange_money:{on:true,num:''},mtn_momo:{on:true,num:''},wave:{on:true,num:''},moov:{on:true,num:''},carte:{on:true}}};
+let ST=JSON.parse(JSON.stringify(DEF)),sTab='hotel';
+const gn=b=>b?.guest_name||b?.profiles?.full_name||'',gp=b=>b?.guest_phone||b?.profiles?.phone||'';
+const STAY={nuitee:'Nuitée',weekend:'Week-end',h2:'2 heures',h3:'3 heures'},SF={nuitee:'price',weekend:'weekend',h2:'h2',h3:'h3'};
+const longStay=s=>s==='nuitee'||s==='weekend'||!s;
+async function loadSettings(){try{const r=await db.from('settings').select('*');(r.data||[]).forEach(x=>{ST[x.key]=Array.isArray(x.value)?x.value:{...DEF[x.key],...x.value}})}catch(e){}}
+async function saveSet(k,v){const{error}=await db.from('settings').upsert({key:k,value:v});if(error){toast(error.message);return false}ST[k]=v;toast('Enregistré');return true}
+const modes=()=>Object.fromEntries(Object.entries(MET).filter(([k])=>ST.payments[k]?.on!==false));
+const hit=(nm,ph,id)=>{const n=s=>String(s||'').replace(/\s/g,'').toLowerCase();return watch.find(w=>(w.phone&&n(w.phone)===n(ph))||(w.id_number&&n(w.id_number)===n(id))||(w.name&&n(w.name)===n(nm)))};
+const docBtns=b=>`<button class="s sm" onclick="printReceipt(${b.id})">Reçu</button><button class="s sm" onclick="printInvoice(${b.id})">Facture</button>`;
+
+/* ---- Paramètres ---- */
+function vSet(){const T={hotel:'Établissement',tarifs:'Types et tarifs',comfort:'Confort',pay:'Paiements'};
+ return `<h2>Paramètres</h2><div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px">${Object.entries(T).map(([k,v])=>`<button class="${k===sTab?'p':'s'} sm" style="border-radius:20px;padding:9px 16px" onclick="sTab='${k}';render()">${v}</button>`).join('')}</div>${({hotel:sHotel,tarifs:sTarifs,comfort:sComfort,pay:sPay}[sTab])()}`}
+function sHotel(){const h=ST.hotel,f=(k,l,t='text')=>`<label>${l}<input name="${k}" type="${t}" value="${esc(h[k])}"></label>`;
+ return `<p class="mut">Ces informations s'impriment sur les reçus, les factures et les rapports.</p><form class="card" style="max-width:560px" onsubmit="saveHotel(event)">${f('name',"Nom de l'établissement")}${f('address','Adresse')}<div class="row">${f('phone','Téléphone')}${f('whatsapp','WhatsApp')}</div>${f('email','Email','email')}<div class="row">${f('legal','NIF / RCCM (facultatif)')}${f('tva','TVA (%)','number')}</div>${f('footer','Message en bas du reçu')}<button class="p" style="margin-top:12px">Enregistrer</button></form>`}
+async function saveHotel(e){e.preventDefault();const E=e.target.elements,h={};['name','address','phone','whatsapp','email','legal','tva','footer'].forEach(k=>h[k]=E[k].value.trim());h.tva=+h.tva||0;await saveSet('hotel',h)}
+function sTarifs(){const c=v=>v?fmt(v):'—';
+ return `<p class="mut">Un type = une grille de prix. Modifier un tarif met à jour les chambres de ce type ; les séjours déjà enregistrés ne changent pas.</p><p><button class="p" onclick="typeForm()">Ajouter un type</button></p><div class="card scroll"><table><tr><th>Type</th><th>Confort</th><th>Nuitée</th><th>Week-end</th><th>2 h</th><th>3 h</th><th>H. sup.</th><th>Caution</th><th></th></tr>${types.map(t=>`<tr><td><b>${esc(t.name)}</b></td><td>${esc(t.comfort||'')}</td><td>${c(t.price)}</td><td>${c(t.weekend)}</td><td>${c(t.h2)}</td><td>${c(t.h3)}</td><td>${c(t.hsup)}</td><td>${c(t.caution)}</td><td style="white-space:nowrap"><button class="s sm" onclick="typeForm(${t.id})">Modifier</button><button class="d sm" onclick="delType(${t.id})">Supprimer</button></td></tr>`).join('')}</table></div>`}
+function typeForm(id){const t=types.find(x=>x.id===id)||{},am=(t.amenities||'').split(',').map(s=>s.trim()),n=(k,l)=>`<label>${l}<input name="${k}" type="number" min="0" step="500" value="${t[k]??''}"></label>`;
+ dlg(`<h2>${id?'Modifier':'Nouveau'} type de chambre</h2><form onsubmit="saveType(event,${id||0})"><label>Nom<input name="name" required value="${esc(t.name)}"></label><div class="row"><label>Confort<select name="comfort">${['Ventilée','Climatisée'].map(x=>`<option ${x===t.comfort?'selected':''}>${x}</option>`).join('')}</select></label><label>Personnes max<input name="capacity" type="number" min="1" value="${t.capacity||2}"></label></div><label>Description<input name="description" value="${esc(t.description)}"></label>
+<div class="row">${n('price','Nuitée (F)')}${n('weekend','Week-end (F)')}</div><div class="row">${n('h2','2 heures (F)')}${n('h3','3 heures (F)')}</div><div class="row">${n('hsup','Heure supp. (F)')}${n('caution','Caution (F)')}</div>
+<label>Équipements</label><div style="display:flex;flex-wrap:wrap;gap:6px 14px">${ST.comfort.map(c=>`<label style="font-weight:400;margin:0"><input type="checkbox" name="am" value="${esc(c)}" style="width:auto;margin-right:4px" ${am.includes(c)?'checked':''}>${esc(c)}</label>`).join('')}</div><p class="err" id="err"></p><button class="p">Enregistrer</button> <button type="button" class="s" onclick="closeD()">Annuler</button></form>`)}
+async function saveType(e,id){e.preventDefault();const f=e.target,E=f.elements,v=k=>E[k].value,num=k=>v(k)===''?null:+v(k);
+ const o={name:v('name').trim(),comfort:v('comfort'),description:v('description'),capacity:+v('capacity')||2,price:num('price')||0,weekend:num('weekend'),h2:num('h2'),h3:num('h3'),hsup:num('hsup'),caution:num('caution')||0,amenities:[...f.querySelectorAll('[name=am]:checked')].map(x=>x.value).join(', ')};
+ const{error}=id?await db.from('room_types').update(o).eq('id',id):await db.from('room_types').insert(o);if(error)return $('#err').textContent=error.message;closeD();await load();render()}
+async function delType(id){if(!confirm('Supprimer ce type de chambre ?'))return;const{error}=await db.from('room_types').delete().eq('id',id);if(error)return toast('Impossible : des chambres utilisent ce type.');await load();render()}
+function sComfort(){return `<p class="mut">Ces équipements apparaissent dans la fiche de chaque type de chambre. Ajoutez les vôtres (forage, groupe électrogène…).</p><form style="display:flex;gap:8px;max-width:520px" onsubmit="addComf(event)"><input name="c" placeholder="Nouvel équipement" required><button class="p">Ajouter</button></form><div class="card" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px">${ST.comfort.map((c,i)=>`<span class="tag" style="font-size:13px;padding:5px 10px">${esc(c)} <a href="#" style="color:var(--red);text-decoration:none" onclick="event.preventDefault();delComf(${i})">✕</a></span>`).join('')}</div>`}
+async function addComf(e){e.preventDefault();const v=e.target.c.value.trim();if(v&&!ST.comfort.includes(v)&&await saveSet('comfort',[...ST.comfort,v]))render()}
+async function delComf(i){if(await saveSet('comfort',ST.comfort.filter((_,j)=>j!==i)))render()}
+function sPay(){const P=ST.payments;return `<p class="mut">Activez les modes que vous acceptez. Le numéro marchand s'imprime sur le reçu pour guider le client.</p><form class="card" style="max-width:560px" onsubmit="savePay(event)">${Object.entries(MET).map(([k,v])=>`<div style="display:flex;align-items:center;gap:12px;margin:8px 0"><label style="flex:1;margin:0;display:flex;align-items:center;gap:8px"><input type="checkbox" name="on_${k}" style="width:auto;margin:0" ${P[k]?.on!==false?'checked':''}>${v}</label>${['orange_money','mtn_momo','wave','moov'].includes(k)?`<input name="n_${k}" placeholder="Numéro marchand" value="${esc(P[k]?.num||'')}" style="flex:1.4;margin:0">`:'<span style="flex:1.4"></span>'}</div>`).join('')}<button class="p" style="margin-top:10px">Enregistrer</button></form>`}
+async function savePay(e){e.preventDefault();const E=e.target.elements,P={};Object.keys(MET).forEach(k=>{P[k]={on:E['on_'+k].checked};if(E['n_'+k])P[k].num=E['n_'+k].value.trim()});await saveSet('payments',P)}
+
+/* ---- Réception : nouvelle arrivée ---- */
+function vRec(){const free=rooms.filter(r=>r.status==='libre');
+ return `<h2 style="margin-bottom:6px">Réception · Nouvelle arrivée</h2><p class="mut">Enregistrez un client qui se présente à l'hôtel : séjour, identité, paiement et reçu.</p>
+<form class="card" style="max-width:640px" id="recf" onsubmit="doRec(event)" oninput="recCalc()" onchange="recCalc(event)"><b>Séjour</b><div class="row"><label>Type de séjour<select name="st">${Object.entries(STAY).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label><label>Nombre de nuits<input name="nn" type="number" min="1" value="1"></label></div>
+<label>Chambre libre<select name="rm" required>${free.map(r=>{const t=types.find(x=>x.id===r.type_id)||{};return `<option value="${r.id}">${esc(r.number)} · ${esc(t.name)}</option>`}).join('')||'<option value="">Aucune chambre libre</option>'}</select></label>
+<p style="font:700 24px 'Cormorant Garamond',serif;color:var(--gold);margin:10px 0 0">Total : <span id="rtot">—</span></p>
+<b style="display:block;margin-top:14px">Client</b><div class="row"><label>Nom complet<input name="gn" required></label><label>Téléphone<input name="gp" type="tel" placeholder="07 00 00 00 00"></label></div>
+<div class="row"><label>Nationalité<input name="nat" value="Ivoirienne"></label><label>Venant de<input name="pr"></label></div><div class="row"><label>Pièce<select name="it"><option>CNI</option><option>Passeport</option><option>Permis</option><option>Autre</option></select></label><label>N° de pièce<input name="idn" required></label></div>
+<b style="display:block;margin-top:14px">Paiement</b><div class="row"><label>Montant encaissé (F)<input name="pa" type="number" min="0" step="100" value="0"></label><label>Mode<select name="pm">${opts(modes())}</select></label></div><div class="row"><label>Caution (F)<input name="ca" type="number" min="0" step="500" value="0"></label><span></span></div>
+<p class="err" id="err"></p><button class="p">Enregistrer l'arrivée et imprimer le reçu</button></form>`}
+function recTotal(E){const r=rooms.find(x=>String(x.id)===E.rm.value),t=r&&types.find(x=>x.id===r.type_id)||{},st=E.st.value,n=Math.max(1,+E.nn.value||1),u=t[SF[st]]||0;return{t,r,st,n,u,tot:longStay(st)?u*n:u}}
+function recCalc(e){const E=$('#recf')?.elements;if(!E)return;const x=recTotal(E);E.nn.disabled=!longStay(x.st);$('#rtot').textContent=x.u?fmt(x.tot):'tarif non défini (Paramètres)';
+ if(e&&e.target&&['st','nn','rm'].includes(e.target.name)){E.pa.value=x.tot||0;if(e.target.name==='rm')E.ca.value=x.t.caution||0}}
+async function doRec(e){e.preventDefault();const E=e.target.elements,x=recTotal(E);if(!x.r)return $('#err').textContent='Aucune chambre libre.';if(!x.u)return $('#err').textContent='Définissez ce tarif dans Paramètres, Types et tarifs.';
+ const name=E.gn.value.trim(),ph=E.gp.value.replace(/\D/g,'').slice(-10),idn=E.idn.value.trim(),w=hit(name,ph,idn);if(w&&!confirm(`Client à surveiller : ${w.reason}. Continuer ?`))return;
+ const d1=new Date();d1.setDate(d1.getDate()+(longStay(x.st)?x.n:0));
+ const{data:b,error}=await db.from('bookings').insert({type_id:x.r.type_id,room_id:x.r.id,check_in:iso(new Date()),check_out:iso(d1),guests:1,status:'arrivee',guest_name:name,guest_phone:ph,nationality:E.nat.value.trim(),id_type:E.it.value,id_number:idn,provenance:E.pr.value.trim(),stay_type:x.st,total:x.tot}).select().single();
+ if(error)return $('#err').textContent=error.message;const pm=E.pm.value,pa=+E.pa.value,ca=+E.ca.value;
+ if(pa>0)await db.from('payments').insert({booking_id:b.id,kind:pa>=x.tot?'solde':'acompte',method:pm,amount:pa});if(ca>0)await db.from('payments').insert({booking_id:b.id,kind:'caution',method:pm,amount:ca});
+ await db.from('rooms').update({status:'occupee'}).eq('id',x.r.id);await load();toast('Arrivée enregistrée');tab='res';flt='arrivee';render();printReceipt(b.id)}
+
+/* ---- Impression : reçu 80 mm, facture A4, rapport ---- */
+function printDoc(html){const f=document.createElement('iframe');f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0';document.body.appendChild(f);const d=f.contentWindow.document;d.open();d.write(html);d.close();setTimeout(()=>{f.contentWindow.focus();f.contentWindow.print();setTimeout(()=>f.remove(),30000)},400)}
+const stayLabel=b=>STAY[b.stay_type||'nuitee'],mobNums=()=>Object.entries(MET).filter(([k])=>ST.payments[k]?.num&&ST.payments[k]?.on!==false).map(([k,v])=>`${v} : ${esc(ST.payments[k].num)}`);
+function printReceipt(id){const b=data.find(x=>x.id===id);if(!b)return toast('Réservation introuvable');const h=ST.hotel,ps=pays.filter(p=>p.booking_id===id),pd=paid(id),tot=total(b),rest=Math.max(0,tot-pd),cau=sum(ps.filter(p=>p.kind==='caution').map(p=>p.amount))-sum(ps.filter(p=>p.kind==='remboursement').map(p=>p.amount)),mm=mobNums();
+ printDoc(`<!doctype html><meta charset=utf-8><title>Reçu</title><style>@page{size:80mm auto;margin:2mm}*{box-sizing:border-box}body{width:76mm;margin:0;font:12px/1.4 Arial,sans-serif;color:#000}.c{text-align:center}.b{font-weight:700}hr{border:0;border-top:1px dashed #000;margin:6px 0}.r{display:flex;justify-content:space-between;gap:6px}h1{font-size:15px;margin:0}</style>
+<div class=c><h1>${esc(h.name)}</h1>${h.address?esc(h.address)+'<br>':''}${esc(h.phone)}<br>${h.legal?esc(h.legal)+'<br>':''}</div><hr><div class="c b" style="font-size:14px">REÇU N° R-${String(b.id).padStart(5,'0')}</div><div class=c>${new Date().toLocaleString('fr-FR')}</div><hr>
+<div><span class=b>Client :</span> ${esc(gn(b))}</div>${gp(b)?`<div><span class=b>Tél. :</span> ${esc(gp(b))}</div>`:''}<div><span class=b>Chambre :</span> ${esc(b.rooms?.number||'—')} (${esc(b.room_types?.name||'')})</div><div><span class=b>Séjour :</span> ${stayLabel(b)}, du ${dt(b.check_in)} au ${dt(b.check_out)}</div><hr>
+<div class=r><span>Total séjour</span><b>${fmt(tot)}</b></div>${ps.filter(p=>p.kind==='acompte'||p.kind==='solde').map(p=>`<div class=r><span>${KIND[p.kind]} (${MET[p.method]})</span><span>${fmt(p.amount)}</span></div>`).join('')}<div class=r><b>Déjà versé</b><b>${fmt(pd)}</b></div><div class=r style="font-size:14px"><b>Reste à payer</b><b>${fmt(rest)}</b></div>${cau>0?`<div class=r><span>Caution versée</span><span>${fmt(cau)}</span></div>`:''}${rest>0&&mm.length?`<hr><div>Paiement mobile :<br>${mm.join('<br>')}</div>`:''}<hr><div style="height:36px">Signature :</div><div class=c>${esc(h.footer)}</div><div class=c style="font-size:10px;margin-top:4px">Reçu édité par ${esc(me.full_name)}</div>`)}
+function printInvoice(id){const b=data.find(x=>x.id===id);if(!b)return toast('Réservation introuvable');const h=ST.hotel,tot=total(b),qty=longStay(b.stay_type)?nights(b):1,pu=Math.round(tot/qty),tva=Math.round(tot*(h.tva||0)/100),ttc=tot+tva,pd=paid(id),rest=Math.max(0,ttc-pd),no=`F-${new Date().getFullYear()}-${String(b.id).padStart(5,'0')}`;
+ printDoc(`<!doctype html><meta charset=utf-8><title>Facture ${no}</title><style>@page{size:A4;margin:14mm}*{box-sizing:border-box}body{font:13px/1.5 Arial,sans-serif;color:#111;margin:0;position:relative}h1{font:700 26px Georgia,serif;color:#0E3B2C;margin:0}.top{display:flex;justify-content:space-between;border-bottom:3px solid #B58A3C;padding-bottom:12px;margin-bottom:24px}table{width:100%;border-collapse:collapse}th{background:#0E3B2C;color:#fff;padding:9px;font-size:12px}td{padding:9px;border:1px solid #ccc;text-align:center}td:first-child{text-align:left}.tot{width:56%;margin:22px 0 0 auto}.tot td{text-align:right}.tot tr:nth-child(odd) td{background:#f2f0ea}.stamp{position:absolute;right:12mm;top:62mm;border:4px solid #1E7A4B;color:#1E7A4B;border-radius:12px;padding:6px 20px;font:700 36px Arial;transform:rotate(-12deg);opacity:.75}</style>
+<div class=top><div><h1>${esc(h.name)}</h1>${h.address?esc(h.address)+'<br>':''}${esc(h.phone)}<br>${esc(h.email)}${h.legal?'<br>'+esc(h.legal):''}</div><div style="text-align:right"><b style="font-size:18px">FACTURE</b><br>N° ${no}<br>Date : ${new Date().toLocaleDateString('fr-FR')}</div></div>
+<div style="margin-left:55%"><b>${esc(gn(b))}</b><br>${gp(b)?esc(gp(b))+'<br>':''}${b.id_number?esc((b.id_type||'Pièce')+' : '+b.id_number):''}</div>
+<p style="margin:24px 0 10px"><b>Objet :</b> ${stayLabel(b)}, chambre ${esc(b.rooms?.number||'—')} (${esc(b.room_types?.name||'')}), du ${dt(b.check_in)} au ${dt(b.check_out)}</p>
+<table><tr><th style="text-align:left">Description</th><th>Unité</th><th>Quantité</th><th>Prix unitaire HT</th><th>Total HT</th></tr><tr><td>${stayLabel(b)} · ${esc(b.room_types?.name||'')}</td><td>1</td><td>${qty}</td><td>${fmt(pu)}</td><td>${fmt(tot)}</td></tr></table>
+<table class=tot><tr><td>Montant total HT</td><td>${fmt(tot)}</td></tr><tr><td>Remise HT</td><td>0 F</td></tr><tr><td>Total net HT</td><td>${fmt(tot)}</td></tr><tr><td>TVA (${h.tva||0} %)</td><td>${fmt(tva)}</td></tr><tr><td><b>Montant total TTC</b></td><td><b>${fmt(ttc)}</b></td></tr><tr><td>Montant déjà versé</td><td>${fmt(pd)}</td></tr><tr><td><b>Reste à payer</b></td><td><b>${fmt(rest)}</b></td></tr></table>
+${rest<=0?'<div class=stamp>PAYÉ</div>':''}${rest>0&&mobNums().length?`<p style="margin-top:20px">Paiement mobile : ${mobNums().join(' · ')}</p>`:''}<p style="margin-top:40px;text-align:center;color:#555">${esc(h.footer)}</p>`)}
+function printReport(){const from=Date.now()-rp*864e5,L={1:"Aujourd'hui",7:'7 derniers jours',30:'30 derniers jours',365:'12 derniers mois'}[rp],h=ST.hotel,ps=pays.filter(p=>+new Date(p.at)>=from),rv=ps.filter(p=>p.kind==='acompte'||p.kind==='solde'),bs=data.filter(b=>+new Date(b.created_at)>=from),ns=sum(data.filter(b=>['arrivee','terminee'].includes(b.status)&&+new Date(b.check_in)>=from).map(nights));
+ printDoc(`<!doctype html><meta charset=utf-8><title>Rapport</title><style>@page{size:A4;margin:14mm}body{font:12px/1.5 Arial,sans-serif;color:#111;margin:0}h1{font:700 22px Georgia,serif;color:#0E3B2C;margin:0}h2{font:700 14px Georgia,serif;color:#0E3B2C;margin:20px 0 6px}table{width:100%;border-collapse:collapse}th{background:#0E3B2C;color:#fff;padding:6px;text-align:left}td{padding:6px;border-bottom:1px solid #ddd}.k{display:flex;gap:10px}.k div{flex:1;border:1px solid #ccc;border-top:4px solid #B58A3C;padding:8px}.k b{display:block;font-size:18px}</style>
+<div style="display:flex;justify-content:space-between;border-bottom:3px solid #B58A3C;padding-bottom:8px"><div><h1>${esc(h.name)}</h1>Rapport d'activité</div><div style="text-align:right">${L}<br>Édité le ${new Date().toLocaleString('fr-FR')}<br>par ${esc(me.full_name)}</div></div>
+<h2>Synthèse</h2><div class=k><div><b>${fmt(sum(rv.map(p=>p.amount)))}</b>Encaissé</div><div><b>${bs.length}</b>Demandes reçues</div><div><b>${bs.filter(b=>b.status==='annulee').length}</b>Annulées</div><div><b>${ns}</b>Nuitées vendues</div></div>
+<h2>Par mode de paiement</h2><table>${Object.entries(MET).map(([k,v])=>`<tr><td>${v}</td><td style="text-align:right"><b>${fmt(sum(rv.filter(p=>p.method===k).map(p=>p.amount)))}</b></td></tr>`).join('')}</table>
+<h2>Détail des opérations</h2><table><tr><th>Date</th><th>Client</th><th>Type</th><th>Mode</th><th style="text-align:right">Montant</th></tr>${ps.map(p=>`<tr><td>${new Date(p.at).toLocaleString('fr-FR')}</td><td>${esc(gn(p.bookings))}</td><td>${KIND[p.kind]}</td><td>${MET[p.method]}</td><td style="text-align:right">${p.kind==='remboursement'?'-':''}${fmt(p.amount)}</td></tr>`).join('')||'<tr><td colspan=5>Aucune opération.</td></tr>'}</table>`)}
+
+/* ---- Animations : compteurs ---- */
+function decorate(){if(tab==='rec')recCalc();if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;document.querySelectorAll('.kpi b').forEach(el=>{const t=el.textContent,m=t.match(/^([\d\s\u00a0\u202f]+)( F)?$/);if(!m)return;const to=+m[1].replace(/\D/g,''),t0=performance.now(),step=n=>{const k=Math.min(1,(n-t0)/700),v=Math.round(to*(1-Math.pow(1-k,3)));el.textContent=m[2]?fmt(v):v;if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step)})}
+Object.assign(XV,{rec:vRec,set:vSet});
 
 </script>
 <script src="config.js"></script>
@@ -179,6 +272,7 @@ async function boot(){
 }
 addEventListener('error',e=>{if(!$('#app').innerHTML.trim())$('#app').innerHTML=`<div class="card"><h2>Erreur</h2><p>${esc(e.message)}</p></div>`});
 async function load(){
+ await loadSettings();
  {const r=await db.from('room_types').select('*').order('price');types=r.data||[];loadErr=r.error?r.error.message:''}
  if(!me)return;
  let q=db.from('bookings').select('*,profiles(full_name,phone),room_types(name,price),rooms(number)').order('created_at',{ascending:false});
@@ -190,13 +284,14 @@ const go=async t=>{tab=t;await load();render()};
 function render(){
  const T=!me?{home:'Chambres',auth:'Connexion'}:staff()?staffTabs():{home:'Chambres',mine:'Mes réservations'};
  $('#nav').innerHTML=Object.entries(T).map(([k,v])=>`<button class="${k===tab?'on':''}" onclick="go('${k}')">${v}</button>`).join('')+(me?`<button onclick="out()">Déconnexion</button>`:''); $('#who').innerHTML=me?`<span style="font-size:12px;color:#cfe0d7">${esc(me.full_name)} · ${R[me.role]}</span><button class="s sm" style="color:#fff" onclick="out()">Déconnexion</button>`:'';
- $('#app').innerHTML=({home:vHome,auth:vAuth,mine:vMine,dash:vDash,res:vRes,rooms:vRooms,users:vUsers,...XV}[tab]||vHome)()+(me?`<button class="s" style="position:fixed;left:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:6;background:var(--card)" onclick="out()">Déconnexion</button>`:'')+`<p class="mut" style="text-align:center;margin-top:30px">Version 5</p>`+(staff()?'':`<a class="p w fab" target="_blank" rel="noopener" href="${wa(CFG.wa,"Bonjour Résidence Hotel Amani, j'ai une question.")}">WhatsApp</a>`);
+ $('#app').innerHTML=({home:vHome,auth:vAuth,mine:vMine,dash:vDash,res:vRes,rooms:vRooms,users:vUsers,...XV}[tab]||vHome)()+(me?`<button class="s" style="position:fixed;left:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:6;background:var(--card)" onclick="out()">Déconnexion</button>`:'')+`<p class="mut" style="text-align:center;margin-top:30px">Version 6</p>`+(staff()?'':`<a class="p w fab" target="_blank" rel="noopener" href="${wa(CFG.wa,"Bonjour Résidence Hotel Amani, j'ai une question.")}">WhatsApp</a>`);
+ if(window.decorate)decorate();
 }
 async function out(){await db.auth.signOut();me=null;data=[];tab='home';render()}
 
 /* ---- Client : chambres, inscription, réservation ---- */
 function vHome(){return `<section class="hero"><h1>Confort, hospitalité, sérénité.</h1><p>Réservez votre chambre en quelques secondes et recevez la confirmation directement sur WhatsApp.</p>${me?'':`<button class="p" style="background:var(--gold)" onclick="mode='up';go('auth')">Créer mon compte</button>`}</section>
-<div class="grid">${types.map(t=>`<div class="card">${t.photo_url?`<img src="${esc(t.photo_url)}" alt="${esc(t.name)}" loading="lazy" style="width:100%;height:170px;object-fit:cover;border-radius:8px;margin-bottom:10px">`:''}<h3>${esc(t.name)}</h3><p class="mut">${esc(t.description)}</p><p class="mut">${esc(t.amenities)} · ${t.capacity} pers.</p><div class="price">${fmt(t.price)} / nuit</div><button class="p" style="margin-top:10px" onclick="book(${t.id})">Réserver</button></div>`).join('')||`<p class="mut">Aucune chambre disponible.${loadErr?' Erreur : '+esc(loadErr):''}</p>`}</div>
+<div class="grid">${types.map(t=>`<div class="card">${t.photo_url?`<img src="${esc(t.photo_url)}" alt="${esc(t.name)}" loading="lazy" style="width:100%;height:170px;object-fit:cover;border-radius:8px;margin-bottom:10px">`:''}<h3>${esc(t.name)}</h3><p class="mut">${esc(t.description)}</p><p class="mut">${esc(t.amenities)} · ${t.capacity} pers.</p><div class="price">${fmt(t.price)} / nuit</div>${t.weekend?`<div class="mut">Week-end ${fmt(t.weekend)}</div>`:''}${t.h2?`<div class="mut">2 h ${fmt(t.h2)}${t.h3?` · 3 h ${fmt(t.h3)}`:''}</div>`:''}<button class="p" style="margin-top:10px" onclick="book(${t.id})">Réserver</button></div>`).join('')||`<p class="mut">Aucune chambre disponible.${loadErr?' Erreur : '+esc(loadErr):''}</p>`}</div>
 <p class="mut" style="margin-top:18px">Appelez-nous : <a href="tel:${CFG.tel}">${CFG.tel}</a> · ${CFG.email}</p>`}
 function vAuth(){const up=mode==='up';return `<form class="card auth" onsubmit="auth(event)"><h2>${up?'Créer mon compte':'Connexion'}</h2>
 ${up?'<label>Nom complet<input name="n" required autocomplete="name"></label>':''}<label>Numéro de téléphone<input name="p" type="tel" inputmode="tel" required placeholder="07 00 00 00 00" autocomplete="tel"></label>
@@ -222,20 +317,20 @@ function vDash(){const t0=new Date().toISOString().slice(0,10),act=data.filter(b
  rev=act.reduce((s,b)=>s+nights(b)*(b.room_types?.price||0),0),occ=rooms.filter(r=>r.status==='occupee').length;
  return `<h2 style="margin-bottom:12px">Tableau de bord</h2><div class="kpis"><div class="card kpi"><b>${data.filter(b=>b.status==='en_attente').length}</b><span class="mut">Demandes à traiter</span></div>
 <div class="card kpi"><b>${data.filter(b=>b.check_in===t0&&b.status==='confirmee').length}</b><span class="mut">Arrivées aujourd'hui</span></div><div class="card kpi"><b>${occ}/${rooms.length}</b><span class="mut">Chambres occupées</span></div><div class="card kpi"><b>${fmt(rev)}</b><span class="mut">Chiffre d'affaires réservé</span></div></div>
-<div class="grid">${rooms.map(r=>`<div class="card"><b>${esc(r.number)}</b> ${tag(r.status)}<div class="mut">${esc(r.room_types?.name)}</div></div>`).join('')}</div>`}
+<div class="grid">${rooms.map(r=>`<div class="card rm ${r.status}"><b>${esc(r.number)}</b> ${tag(r.status)}<div class="mut">${esc(r.room_types?.name)}</div></div>`).join('')}</div>`}
 let flt='en_attente';
 function vRes(){const L=data.filter(b=>flt==='all'||b.status===flt);
  return `<h2 style="margin-bottom:12px">Réservations</h2><select style="max-width:220px" onchange="flt=this.value;render()">${['all',...Object.keys(S).slice(0,5)].map(k=>`<option value="${k}" ${k===flt?'selected':''}>${k==='all'?'Toutes':S[k]}</option>`).join('')}</select>
-<div class="card scroll" style="margin-top:12px"><table>${L.map(b=>`<tr><td><b>${esc(b.profiles?.full_name)}</b><div class="mut">${esc(b.profiles?.phone)}</div></td><td>${esc(b.room_types?.name)}${b.rooms?` · Ch. ${esc(b.rooms.number)}`:''}<div class="mut">${dt(b.check_in)} → ${dt(b.check_out)} · ${b.guests} pers.</div>${b.notes?`<div class="mut">${esc(b.notes)}</div>`:''}</td><td>${tag(b.status)}</td>
-<td>${manage()?act(b):''}<a class="p w sm" style="padding:6px 10px;font-size:12px" target="_blank" rel="noopener" href="${wa(cw(b.profiles?.phone),msg(b))}">WhatsApp</a></td></tr>`).join('')||'<tr><td>Aucune réservation.</td></tr>'}</table></div>`}
-const msg=b=>b.status==='confirmee'?`Bonjour ${b.profiles?.full_name}, votre réservation du ${dt(b.check_in)} au ${dt(b.check_out)} est confirmée${b.rooms?` (chambre ${b.rooms.number})`:''}. Résidence Hotel Amani vous attend !`:`Bonjour ${b.profiles?.full_name}, ici Résidence Hotel Amani, à propos de votre réservation du ${dt(b.check_in)}.`;
+<div class="card scroll" style="margin-top:12px"><table>${L.map(b=>`<tr><td><b>${esc(gn(b))}</b><div class="mut">${esc(gp(b))}</div></td><td>${esc(b.room_types?.name)}${b.rooms?` · Ch. ${esc(b.rooms.number)}`:''}<div class="mut">${dt(b.check_in)} → ${dt(b.check_out)} · ${b.guests} pers.</div>${b.notes?`<div class="mut">${esc(b.notes)}</div>`:''}</td><td>${tag(b.status)}</td>
+<td>${manage()?act(b):''}${docBtns(b)}${gp(b)?`<a class="p w sm" style="padding:6px 10px;font-size:12px" target="_blank" rel="noopener" href="${wa(cw(gp(b)),msg(b))}">WhatsApp</a>`:''}</td></tr>`).join('')||'<tr><td>Aucune réservation.</td></tr>'}</table></div>`}
+const msg=b=>b.status==='confirmee'?`Bonjour ${gn(b)}, votre réservation du ${dt(b.check_in)} au ${dt(b.check_out)} est confirmée${b.rooms?` (chambre ${b.rooms.number})`:''}. Résidence Hotel Amani vous attend !`:`Bonjour ${gn(b)}, ici Résidence Hotel Amani, à propos de votre réservation du ${dt(b.check_in)}.`;
 function act(b){const B=(s,l,c='s')=>`<button class="${c} sm" onclick="setB(${b.id},'${s}'${s==='arrivee'?',{}':''});${s==='arrivee'?`roomSt(${b.room_id},'occupee')`:s==='terminee'?`roomSt(${b.room_id},'nettoyage')`:''}">${l}</button>`;
  if(b.status==='en_attente')return `<button class="p sm" onclick="confirmB(${b.id},${b.type_id})">Confirmer</button>${B('annulee','Refuser','d')}`;
  const P=`<button class="s sm" onclick="pay(${b.id})">Encaisser</button>`;if(b.status==='confirmee')return `<button class="p sm" onclick="arrive(${b.id})">Arrivée</button>`+P+B('annulee','Annuler','d');if(b.status==='arrivee')return B('terminee','Départ','p')+P;if(b.status==='terminee')return P;return ''}
 const roomSt=async(id,status)=>{if(id){await db.from('rooms').update({status}).eq('id',id);await load();render()}};
 function confirmB(id,tid){const free=rooms.filter(r=>r.type_id===tid&&r.status==='libre');
  dlg(`<h2>Attribuer une chambre</h2><form onsubmit="doConf(event,${id})"><label>Chambre<select name="r" required>${free.map(r=>`<option value="${r.id}">${esc(r.number)}</option>`).join('')||'<option value="">Aucune chambre libre de ce type</option>'}</select></label><button class="p">Confirmer</button> <button type="button" class="s" onclick="closeD()">Annuler</button></form>`)}
-async function doConf(e,id){e.preventDefault();if(!e.target.r.value)return;await setB(id,'confirmee',{room_id:+e.target.r.value});closeD();const b=data.find(x=>x.id===id);if(b)window.open(wa(cw(b.profiles?.phone),msg(b)),'_blank')}
+async function doConf(e,id){e.preventDefault();if(!e.target.r.value)return;await setB(id,'confirmee',{room_id:+e.target.r.value});closeD();const b=data.find(x=>x.id===id);if(b)window.open(wa(cw(gp(b)),msg(b)),'_blank')}
 function vRooms(){return `<h2 style="margin-bottom:12px">Chambres et tarifs</h2>${conf()?`<p><button class="p" onclick="addRoom()">Ajouter une chambre</button></p>`:''}
 <div class="card scroll"><table>${rooms.map(r=>`<tr><td><b>${esc(r.number)}</b></td><td>${esc(r.room_types?.name)}</td><td>${manage()?`<select onchange="roomSt(${r.id},this.value)">${['libre','occupee','nettoyage','maintenance'].map(s=>`<option value="${s}" ${s===r.status?'selected':''}>${S[s]}</option>`).join('')}</select>`:tag(r.status)}</td></tr>`).join('')}</table></div>
 <h3 style="margin:20px 0 8px">Types de chambre</h3><div class="grid">${types.map(t=>`<div class="card"><b>${esc(t.name)}</b><div class="price">${fmt(t.price)}</div>${t.photo_url?`<img src="${esc(t.photo_url)}" alt="" style="width:100%;height:110px;object-fit:cover;border-radius:6px;margin:6px 0">`:''}${conf()?`<button class="s sm" onclick="setPrice(${t.id},${t.price})">Modifier le prix</button><button class="s sm" onclick="photo(${t.id})">Photo</button>`:''}</div>`).join('')}</div>`}
